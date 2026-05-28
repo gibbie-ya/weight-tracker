@@ -1,0 +1,2 @@
+-keep class com.yourayurveda.weighttracker.data.db.** { *; }
+-keepclassmembers class com.yourayurveda.weighttracker.data.db.** { *; }
