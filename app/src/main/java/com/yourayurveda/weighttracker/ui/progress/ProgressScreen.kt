@@ -19,6 +19,7 @@ import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.yourayurveda.weighttracker.data.db.DailyEntry
 import com.yourayurveda.weighttracker.util.formatWeight
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun ProgressScreen(viewModel: ProgressViewModel) {
@@ -26,6 +27,7 @@ fun ProgressScreen(viewModel: ProgressViewModel) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val selectedRange by viewModel.selectedRange.collectAsStateWithLifecycle()
+    val weeklyTotals by viewModel.weeklyTotals.collectAsStateWithLifecycle()
 
     if (filteredEntries.isEmpty() && stats.daysLogged == 0) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -43,6 +45,8 @@ fun ProgressScreen(viewModel: ProgressViewModel) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item { WeeklyTotalsCard(weeklyTotals) }
+
         item { StatsGrid(stats, settings.unit) }
 
         item {
@@ -72,6 +76,32 @@ fun ProgressScreen(viewModel: ProgressViewModel) {
         item {
             ChartCard(title = "Daily Steps (goal: ${settings.dailyStepGoal})") {
                 StepsChart(filteredEntries)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyTotalsCard(totals: WeeklyTotals) {
+    val weekLabel = totals.weekStart.format(DateTimeFormatter.ofPattern("d MMM"))
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                "This week (from $weekLabel)",
+                style = MaterialTheme.typography.titleSmall
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatCard(
+                    label = "Calories",
+                    value = "%,d kcal".format(totals.calories),
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    label = "Steps",
+                    value = "%,d".format(totals.steps),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }

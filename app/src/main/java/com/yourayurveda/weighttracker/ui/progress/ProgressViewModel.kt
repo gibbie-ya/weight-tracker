@@ -11,7 +11,9 @@ import com.yourayurveda.weighttracker.data.datastore.UserSettings
 import com.yourayurveda.weighttracker.data.db.DailyEntry
 import com.yourayurveda.weighttracker.data.repository.EntryRepository
 import kotlinx.coroutines.flow.*
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 enum class TimeRange(val label: String, val days: Long?) {
     SEVEN("7d", 7),
@@ -25,6 +27,12 @@ data class ProgressStats(
     val weightRemaining: Float = 0f,
     val avgDailyCalorieNet: Int = 0,
     val daysLogged: Int = 0
+)
+
+data class WeeklyTotals(
+    val calories: Int = 0,
+    val steps: Int = 0,
+    val weekStart: LocalDate = LocalDate.now()
 )
 
 class ProgressViewModel(
@@ -62,6 +70,17 @@ class ProgressViewModel(
         val daysLogged = entries.count { it.weight != null }
         ProgressStats(totalLost, remaining, avgNet, daysLogged)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ProgressStats())
+
+    val weeklyTotals: StateFlow<WeeklyTotals> = allEntries.map { entries ->
+        val today = LocalDate.now()
+        val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weekEntries = entries.filter { it.date >= weekStart.toString() && it.date <= today.toString() }
+        WeeklyTotals(
+            calories = weekEntries.sumOf { it.caloriesConsumed },
+            steps = weekEntries.sumOf { it.steps },
+            weekStart = weekStart
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), WeeklyTotals())
 
     fun setRange(range: TimeRange) { _selectedRange.value = range }
 
