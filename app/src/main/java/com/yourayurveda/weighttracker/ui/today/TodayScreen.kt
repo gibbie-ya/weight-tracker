@@ -87,7 +87,10 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
             )
         }
 
+        // Weight section — save independently in the morning
         item {
+            Text("Weight", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = weightText,
                 onValueChange = { weightText = it },
@@ -96,9 +99,21 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { viewModel.saveWeight(weightText.toFloatOrNull()) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (todayEntry?.weight != null) "Update weight" else "Save weight")
+            }
         }
 
+        item { HorizontalDivider() }
+
+        // Daily log section — fill in later in the day
         item {
+            Text("Daily Log", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = caloriesText,
@@ -117,9 +132,7 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                     modifier = Modifier.weight(1f)
                 )
             }
-        }
-
-        item {
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = stepsText,
                 onValueChange = { stepsText = it },
@@ -128,9 +141,7 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
-        }
-
-        item {
+            Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = hitMacros,
@@ -155,9 +166,7 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                     } else null
                 )
             }
-        }
-
-        item {
+            Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
@@ -165,13 +174,10 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )
-        }
-
-        item {
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
-                    viewModel.saveEntry(
-                        weight = weightText.toFloatOrNull(),
+                    viewModel.saveLog(
                         caloriesConsumed = caloriesText.toIntOrNull() ?: 0,
                         activeCaloriesBurnt = activeCalText.toIntOrNull() ?: 0,
                         steps = stepsText.toIntOrNull() ?: 0,
@@ -182,7 +188,7 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (todayEntry != null) "Update" else "Save")
+                Text(if (todayEntry?.caloriesConsumed != 0) "Update log" else "Save log")
             }
         }
     }

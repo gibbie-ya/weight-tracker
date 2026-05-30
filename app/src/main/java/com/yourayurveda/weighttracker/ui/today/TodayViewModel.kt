@@ -37,20 +37,31 @@ class TodayViewModel(
     private val _saveResult = MutableSharedFlow<Boolean>()
     val saveResult: SharedFlow<Boolean> = _saveResult.asSharedFlow()
 
-    fun saveEntry(
-        weight: Float?,
+    fun saveWeight(weight: Float?) {
+        viewModelScope.launch {
+            val existing = todayEntry.value
+            entryRepository.upsertEntry(
+                (existing ?: DailyEntry(date = today)).copy(
+                    weight = weight,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+            _saveResult.emit(true)
+        }
+    }
+
+    fun saveLog(
         caloriesConsumed: Int,
         activeCaloriesBurnt: Int,
         steps: Int,
         hitMacros: Boolean,
         wentToGym: Boolean,
-        notes: String = ""
+        notes: String
     ) {
         viewModelScope.launch {
+            val existing = todayEntry.value
             entryRepository.upsertEntry(
-                DailyEntry(
-                    date = today,
-                    weight = weight,
+                (existing ?: DailyEntry(date = today)).copy(
                     caloriesConsumed = caloriesConsumed,
                     activeCaloriesBurnt = activeCaloriesBurnt,
                     steps = steps,
