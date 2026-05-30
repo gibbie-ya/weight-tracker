@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -26,9 +28,15 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Publish APK as release
+        uses: ncipollo/release-action@v1
         with:
-          name: weight-tracker-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 14
+          tag: debug-latest
+          name: "Latest Debug Build"
+          body: "Auto-built from branch `${{ github.ref_name }}` — commit `${{ github.sha }}`"
+          artifacts: app/build/outputs/apk/debug/app-debug.apk
+          artifactContentType: application/vnd.android.package-archive
+          allowUpdates: true
+          removeArtifacts: true
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
