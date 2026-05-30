@@ -18,32 +18,47 @@ class ReminderWorker(
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
+        val type = inputData.getString(KEY_TYPE) ?: TYPE_FULL
         val today = LocalDate.now().toString()
         val entry = AppDatabase.getInstance(context).dailyEntryDao().getEntryForDateOnce(today)
-        if (entry == null) showNotification()
+        when (type) {
+            TYPE_WEIGHT -> if (entry == null || entry.weight == null) showNotification(
+                id = NOTIFICATION_ID_WEIGHT,
+                title = "Log your weight",
+                text = "You haven't recorded your weight today."
+            )
+            else -> if (entry == null || entry.caloriesConsumed == 0) showNotification(
+                id = NOTIFICATION_ID_FULL,
+                title = "Log today's progress",
+                text = "You haven't logged your calories and steps yet."
+            )
+        }
         return Result.success()
     }
 
-    private fun showNotification() {
+    private fun showNotification(id: Int, title: String, text: String) {
         val intent = Intent(Intent.ACTION_VIEW, "weighttracker://today".toUri()).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
+            context, id, intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val notification = NotificationCompat.Builder(context, WeightTrackerApp.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Log today's progress")
-            .setContentText("You haven't logged today yet. Tap to add it.")
+            .setContentTitle(title)
+            .setContentText(text)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
-        context.getSystemService(NotificationManager::class.java)
-            .notify(NOTIFICATION_ID, notification)
+        context.getSystemService(NotificationManager::class.java).notify(id, notification)
     }
 
     companion object {
-        const val NOTIFICATION_ID = 1001
+        const val KEY_TYPE = "reminder_type"
+        const val TYPE_WEIGHT = "weight"
+        const val TYPE_FULL = "full"
+        const val NOTIFICATION_ID_WEIGHT = 1002
+        const val NOTIFICATION_ID_FULL = 1001
     }
 }

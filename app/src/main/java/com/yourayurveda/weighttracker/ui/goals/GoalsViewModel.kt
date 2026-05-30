@@ -63,6 +63,20 @@ class GoalsViewModel(
         }
     }
 
+    fun updateWeightReminderEnabled(enabled: Boolean, context: Context) {
+        viewModelScope.launch {
+            settingsRepository.updateWeightReminderEnabled(enabled)
+            ReminderScheduler.scheduleWeight(context, settings.value.weightReminderHour, enabled, force = true)
+        }
+    }
+
+    fun updateWeightReminderHour(hour: Int, context: Context) {
+        viewModelScope.launch {
+            settingsRepository.updateWeightReminderHour(hour)
+            ReminderScheduler.scheduleWeight(context, hour, settings.value.weightReminderEnabled, force = true)
+        }
+    }
+
     fun exportCsv(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             val entries = entryRepository.getAllEntriesOnce()

@@ -32,6 +32,7 @@ class WeightTrackerApp : Application() {
         CoroutineScope(Dispatchers.IO).launch {
             val settings = container.settingsRepository.settings.first()
             ReminderScheduler.schedule(this@WeightTrackerApp, settings.reminderHour, settings.reminderEnabled)
+            ReminderScheduler.scheduleWeight(this@WeightTrackerApp, settings.weightReminderHour, settings.weightReminderEnabled)
         }
     }
 

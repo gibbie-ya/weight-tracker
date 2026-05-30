@@ -14,7 +14,9 @@ data class UserSettings(
     val dailyCalorieTarget: Int = 2000,
     val dailyStepGoal: Int = 10000,
     val reminderEnabled: Boolean = true,
-    val reminderHour: Int = 21
+    val reminderHour: Int = 21,
+    val weightReminderEnabled: Boolean = true,
+    val weightReminderHour: Int = 8
 )
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_settings")
@@ -29,6 +31,8 @@ class SettingsRepository(private val context: Context) {
         val KEY_STEP_GOAL = intPreferencesKey("step_goal")
         val KEY_REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
         val KEY_REMINDER_HOUR = intPreferencesKey("reminder_hour")
+        val KEY_WEIGHT_REMINDER_ENABLED = booleanPreferencesKey("weight_reminder_enabled")
+        val KEY_WEIGHT_REMINDER_HOUR = intPreferencesKey("weight_reminder_hour")
     }
 
     val settings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
@@ -39,7 +43,9 @@ class SettingsRepository(private val context: Context) {
             dailyCalorieTarget = prefs[KEY_CALORIE_TARGET] ?: 2000,
             dailyStepGoal = prefs[KEY_STEP_GOAL] ?: 10000,
             reminderEnabled = prefs[KEY_REMINDER_ENABLED] ?: true,
-            reminderHour = prefs[KEY_REMINDER_HOUR] ?: 21
+            reminderHour = prefs[KEY_REMINDER_HOUR] ?: 21,
+            weightReminderEnabled = prefs[KEY_WEIGHT_REMINDER_ENABLED] ?: true,
+            weightReminderHour = prefs[KEY_WEIGHT_REMINDER_HOUR] ?: 8
         )
     }
 
@@ -50,4 +56,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun updateStepGoal(g: Int) = context.dataStore.edit { it[KEY_STEP_GOAL] = g }
     suspend fun updateReminderEnabled(e: Boolean) = context.dataStore.edit { it[KEY_REMINDER_ENABLED] = e }
     suspend fun updateReminderHour(h: Int) = context.dataStore.edit { it[KEY_REMINDER_HOUR] = h }
+    suspend fun updateWeightReminderEnabled(e: Boolean) = context.dataStore.edit { it[KEY_WEIGHT_REMINDER_ENABLED] = e }
+    suspend fun updateWeightReminderHour(h: Int) = context.dataStore.edit { it[KEY_WEIGHT_REMINDER_HOUR] = h }
 }

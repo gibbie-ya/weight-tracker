@@ -36,6 +36,7 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
         mutableStateOf(if (settings.dailyStepGoal > 0) settings.dailyStepGoal.toString() else "")
     }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showWeightTimePicker by remember { mutableStateOf(false) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.importCsv(context, it) }
@@ -123,27 +124,51 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
         }
 
         item {
-            Text("Daily Reminder", style = MaterialTheme.typography.titleMedium)
+            Text("Reminders", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
+            Text("Weight reminder", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Enable reminder")
+                Text("Enable weight reminder")
+                Switch(
+                    checked = settings.weightReminderEnabled,
+                    onCheckedChange = { viewModel.updateWeightReminderEnabled(it, context) }
+                )
+            }
+            if (settings.weightReminderEnabled) {
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { showWeightTimePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Weight reminder time: %02d:00".format(settings.weightReminderHour))
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("Daily log reminder", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Enable log reminder")
                 Switch(
                     checked = settings.reminderEnabled,
                     onCheckedChange = { viewModel.updateReminderEnabled(it, context) }
                 )
             }
             if (settings.reminderEnabled) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
                 OutlinedButton(
                     onClick = { showTimePicker = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val h = settings.reminderHour
-                    Text("Reminder time: %02d:00".format(h))
+                    Text("Log reminder time: %02d:00".format(settings.reminderHour))
                 }
             }
         }
@@ -181,6 +206,17 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
             onConfirm = { hour ->
                 viewModel.updateReminderHour(hour, context)
                 showTimePicker = false
+            }
+        )
+    }
+
+    if (showWeightTimePicker) {
+        ReminderTimeDialog(
+            initialHour = settings.weightReminderHour,
+            onDismiss = { showWeightTimePicker = false },
+            onConfirm = { hour ->
+                viewModel.updateWeightReminderHour(hour, context)
+                showWeightTimePicker = false
             }
         )
     }
