@@ -19,6 +19,7 @@ import com.yourayurveda.weighttracker.util.toDisplayDate
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState) {
     val todayEntry by viewModel.todayEntry.collectAsStateWithLifecycle()
@@ -34,6 +35,7 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
     var wentToGym by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf("") }
     var prefilledFor by remember { mutableStateOf<String?>(null) }
+    var bannerDismissed by remember { mutableStateOf(false) }
 
     LaunchedEffect(todayEntry) {
         val entry = todayEntry
@@ -58,8 +60,23 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (missingDays.isNotEmpty()) {
-            item { MissingDaysBanner(missingDays) }
+        if (missingDays.isNotEmpty() && !bannerDismissed) {
+            item {
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value != SwipeToDismissBoxValue.Settled) {
+                            bannerDismissed = true
+                            true
+                        } else false
+                    }
+                )
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {}
+                ) {
+                    MissingDaysBanner(missingDays)
+                }
+            }
         }
 
         item {

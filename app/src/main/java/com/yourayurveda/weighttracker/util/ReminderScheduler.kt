@@ -9,7 +9,10 @@ import java.util.concurrent.TimeUnit
 object ReminderScheduler {
     private const val WORK_NAME = "daily_reminder"
 
-    fun schedule(context: Context, hour: Int, enabled: Boolean) {
+    // force = true when the user explicitly changes the reminder time/toggle; on app startup
+    // we use KEEP so we don't reset the delay every time the app opens (which would prevent
+    // the notification from ever firing).
+    fun schedule(context: Context, hour: Int, enabled: Boolean, force: Boolean = false) {
         val wm = WorkManager.getInstance(context)
         if (!enabled) {
             wm.cancelUniqueWork(WORK_NAME)
@@ -18,11 +21,9 @@ object ReminderScheduler {
         val request = PeriodicWorkRequestBuilder<ReminderWorker>(1, TimeUnit.DAYS)
             .setInitialDelay(calculateDelay(hour), TimeUnit.MILLISECONDS)
             .build()
-        wm.enqueueUniquePeriodicWork(
-            WORK_NAME,
-            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
-            request
-        )
+        val policy = if (force) ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE
+                     else ExistingPeriodicWorkPolicy.KEEP
+        wm.enqueueUniquePeriodicWork(WORK_NAME, policy, request)
     }
 
     private fun calculateDelay(hour: Int): Long {

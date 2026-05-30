@@ -52,14 +52,14 @@ class GoalsViewModel(
     fun updateReminderEnabled(enabled: Boolean, context: Context) {
         viewModelScope.launch {
             settingsRepository.updateReminderEnabled(enabled)
-            ReminderScheduler.schedule(context, settings.value.reminderHour, enabled)
+            ReminderScheduler.schedule(context, settings.value.reminderHour, enabled, force = true)
         }
     }
 
     fun updateReminderHour(hour: Int, context: Context) {
         viewModelScope.launch {
             settingsRepository.updateReminderHour(hour)
-            ReminderScheduler.schedule(context, hour, settings.value.reminderEnabled)
+            ReminderScheduler.schedule(context, hour, settings.value.reminderEnabled, force = true)
         }
     }
 
