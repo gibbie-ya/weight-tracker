@@ -8,7 +8,8 @@ Step-by-step instructions for building the Brain-Dump → Google Tasks scenario 
 
 - Make.com account (Free tier works for low volume; Core+ recommended for instant triggers)
 - Google account with Drive and Tasks enabled
-- OpenAI API key (for Whisper transcription and image vision)
+- AssemblyAI API key (for audio transcription — free tier: 100 hrs/month)
+- OpenAI API key (for image vision and PDF extraction only)
 - Anthropic API key (for Claude task structuring)
 - Google Drive folders already created:
   - `/Brain Dump/To action`
@@ -16,7 +17,26 @@ Step-by-step instructions for building the Brain-Dump → Google Tasks scenario 
 
 ---
 
-## Step 1 — Create a new scenario
+## Step 1 — Add connections in Make
+
+Do this before building the scenario so connections are ready to select as you go.
+
+### Google
+1. **Connections** → **Add a connection** → search **Google Drive** → sign in → grant all permissions. One connection covers both Drive and Tasks modules.
+
+### AssemblyAI
+1. Sign up at [assemblyai.com](https://www.assemblyai.com) → copy your API key from the dashboard.
+2. In Make: **Connections** → **Add** → search **AssemblyAI** → paste your API key → Save.
+
+### OpenAI
+1. **Connections** → **Add** → search **OpenAI** → paste your OpenAI API key → Save. (Used for image vision and PDF extraction only — not audio.)
+
+### Anthropic
+1. **Connections** → **Add** → search **Anthropic** → paste your Anthropic API key → Save.
+
+---
+
+## Step 2 — Create a new scenario
 
 1. Log in to Make.com → **Create a new scenario**
 2. Name it: `Brain Dump → Google Tasks`
@@ -57,13 +77,14 @@ Step-by-step instructions for building the Brain-Dump → Google Tasks scenario 
 2. **Filter label:** `Audio`
 3. **Condition:** `{{1.mimeType}}` **matches pattern (regex):** `^audio/`
    - OR as a fallback: `{{1.name}}` **matches pattern:** `\.(m4a|mp3|ogg|wav|aac)$`
-4. **Module:** OpenAI → **Create a Transcription (Whisper)**
-   - Connection: your OpenAI connection
-   - File: map `{{2.data}}` (the downloaded bytes from Module 2)
-   - File name: map `{{1.name}}`
-   - Model: `whisper-1`
-   - Response format: `text`
-5. **Output variable name** (for convergence): note that this branch outputs `{{3.text}}`
+4. **Module:** AssemblyAI → **Transcribe a Recording**
+   - Connection: your AssemblyAI connection (API key — see Step 3.2 below)
+   - Audio: map `{{2.data}}` (the downloaded bytes from Module 2)
+   - Language code: leave blank for auto-detect, or set `en` for English
+   - Leave all other options as default
+5. **Output:** the transcript text is at `{{N.text}}`
+
+> AssemblyAI's free tier gives 100 hours/month — ample for personal use. Sign up at assemblyai.com, grab your API key from the dashboard.
 
 ### Branch 2 — Image
 

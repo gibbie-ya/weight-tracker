@@ -14,7 +14,7 @@ Google Drive: /Brain Dump/To action
 Download file
       ↓
 Router (branch by file type)
-  ├─ Audio   → OpenAI Whisper → transcript text
+  ├─ Audio   → AssemblyAI → transcript text
   ├─ Image   → OpenAI GPT-4o vision → extracted text
   ├─ PDF/doc → OpenAI GPT-4o → extracted text
   └─ Text    → read directly
@@ -35,7 +35,8 @@ Google Drive: move file to /Brain Dump/Actioned
 |---|---|
 | Make.com account | Free tier works; Core+ gives 1-min polling |
 | Google account | Drive + Tasks |
-| OpenAI API key | For Whisper (audio) and GPT-4o (images, PDFs) |
+| AssemblyAI API key | For audio transcription — free tier: 100 hrs/month |
+| OpenAI API key | For GPT-4o vision (images) and PDF extraction only |
 | Anthropic API key | For Claude task structuring |
 | Node.js ≥ 18 | For running the local test harness only |
 
@@ -102,13 +103,20 @@ Make.com handles OAuth2 for you when you connect your Google account — you do 
 3. Grant all requested permissions (Drive, Tasks)
 4. This single connection covers both Drive and Tasks modules
 
-### 3.2 Connect OpenAI
+### 3.2 Connect AssemblyAI
+
+1. Sign up at [assemblyai.com](https://www.assemblyai.com) — free tier gives 100 hours/month
+2. Copy your API key from the dashboard
+3. In Make: **Connections** → **Add** → **AssemblyAI** → paste API key → Save
+
+### 3.3 Connect OpenAI
 
 1. **Connections** → **Add** → **OpenAI**
 2. Paste your OpenAI API key
 3. Save
+(Used for images and PDFs only — not audio)
 
-### 3.3 Connect Anthropic
+### 3.4 Connect Anthropic
 
 1. **Connections** → **Add** → **Anthropic**
 2. Paste your Anthropic API key
@@ -125,7 +133,7 @@ Follow the detailed step-by-step instructions in [`make/manual-build.md`](make/m
 1. **Google Drive** — Watch Files in a Folder (`/Brain Dump/To action`)
 2. **Google Drive** — Download a File
 3. **Router** (4 branches by MIME type):
-   - Audio → **OpenAI Whisper** — Create a Transcription
+   - Audio → **AssemblyAI** — Transcribe a Recording
    - Image → **OpenAI** — Create a Chat Completion (GPT-4o vision)
    - PDF/doc → **OpenAI** — Create a Chat Completion (GPT-4o with file)
    - Text → **Tools** — Set Variable (read bytes as string)
@@ -265,8 +273,8 @@ Estimates based on typical input sizes. Actual costs vary.
 
 | Input type | Processing | Estimated cost |
 |---|---|---|
-| Short voice note (30s) | Whisper ~0.3 min | ~$0.002 |
-| Long voice note (5 min) | Whisper 5 min | ~$0.030 |
+| Short voice note (30s) | AssemblyAI (free tier) | $0.000 |
+| Long voice note (5 min) | AssemblyAI (free tier) | $0.000 |
 | Image / screenshot | GPT-4o vision (~800 tokens) | ~$0.003 |
 | PDF (1–5 pages) | GPT-4o (~2000 tokens) | ~$0.010 |
 | Plain text | None | $0.000 |
