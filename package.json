@@ -1,0 +1,13 @@
+{
+  "name": "brain-dump-task-structuring",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Test harness for the brain-dump → Google Tasks Claude structuring prompt",
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0",
+    "ajv": "^8.17.1"
+  }
+}

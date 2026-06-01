@@ -1,0 +1,25 @@
+[Text extracted from screenshot of email]
+
+From: bookings@northernrailways.co.uk
+To: gibbie@yourayurveda.co.uk
+Subject: Your booking confirmation — Manchester Piccadilly to Edinburgh Waverley
+
+Dear Mr Gibson,
+
+Thank you for booking with Northern Railways. Here are your travel details:
+
+Outbound: Monday 8 June 2026
+Depart Manchester Piccadilly 07:42 → Arrive Edinburgh Waverley 11:15
+Train: XC4821 | Coach C | Seat 24A (reserved, window)
+Ticket type: Advance Single | £54.00
+
+Return: Friday 12 June 2026
+Depart Edinburgh Waverley 17:30 → Arrive Manchester Piccadilly 21:08
+Train: XC4866 | Coach B | Seat 12D (reserved, aisle)
+Ticket type: Advance Single | £47.50
+
+Please download your e-tickets from the app before travelling — you will need them at the barrier. Remember to bring the payment card used to purchase (Visa ending 4821). Delays of more than 15 minutes entitle you to claim Delay Repay via our website.
+
+If you need to change or cancel, please log in to Manage My Booking. Changes are not permitted on Advance tickets, but if your train is cancelled we will rebook you free of charge.
+
+[End of email]

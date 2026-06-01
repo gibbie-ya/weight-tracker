@@ -1,0 +1,17 @@
+Q2 Planning Meeting — Notes
+Date: 1 June 2026
+Attendees: Rachel (PM), Dev (lead), Priya (design), Tom (QA)
+
+We reviewed the Q2 roadmap and agreed on the following:
+
+The onboarding flow redesign is the top priority. Priya will produce revised wireframes by next Wednesday (10 June). Dev will review the current onboarding code and identify what needs to change — target: have a technical brief ready by the same date.
+
+The performance regression identified in the checkout flow last sprint needs a proper root-cause analysis. Dev to lead this; Rachel wants a written summary by end of this week (5 June).
+
+Tom raised that the regression test suite doesn't cover the new payment provider integration at all. Tom to write at least 10 integration tests covering the happy path and key failure modes. No hard deadline set but before the next release (target: 20 June).
+
+Rachel to send the updated Q2 targets doc to the whole team by tomorrow (2 June).
+
+We agreed to move the weekly standup from 9am to 9:30am starting next Monday (8 June). Rachel will update the calendar invite.
+
+AOB: no other business.

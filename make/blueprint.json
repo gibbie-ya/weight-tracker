@@ -1,0 +1,176 @@
+{
+  "name": "Brain Dump → Google Tasks",
+  "flow": [
+    {
+      "id": 1,
+      "module": "google-drive:WatchFiles",
+      "version": 2,
+      "parameters": {
+        "watch": "new",
+        "folderId": "REPLACE_WITH_TO_ACTION_FOLDER_ID",
+        "limit": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 }
+      }
+    },
+    {
+      "id": 2,
+      "module": "google-drive:DownloadFile",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "fileId": "{{1.id}}"
+      },
+      "metadata": {
+        "designer": { "x": 200, "y": 0 }
+      }
+    },
+    {
+      "id": 3,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "parameters": {},
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 10,
+              "module": "openai:CreateTranscription",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "file": "{{2.data}}",
+                "fileName": "{{1.name}}",
+                "model": "whisper-1",
+                "responseFormat": "text"
+              },
+              "filter": {
+                "name": "Audio",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.mimeType}}",
+                      "b": "^audio/",
+                      "o": "text:match"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 20,
+              "module": "openai:CreateChatCompletion",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "model": "gpt-4o",
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Extract and transcribe all text visible in this image. If no text is present, describe any actions or tasks implied."
+                      },
+                      {
+                        "type": "image_url",
+                        "image_url": {
+                          "url": "data:{{1.mimeType}};base64,{{2.data}}"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "filter": {
+                "name": "Image",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.mimeType}}",
+                      "b": "^image/",
+                      "o": "text:match"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 30,
+              "module": "openai:CreateChatCompletion",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "model": "gpt-4o",
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": "Extract all text from this document. Return plain text only.\n\n{{toString(2.data)}}"
+                  }
+                ]
+              },
+              "filter": {
+                "name": "PDF or Document",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.mimeType}}",
+                      "b": "^application/(pdf|msword|vnd\\.openxmlformats|vnd\\.ms)",
+                      "o": "text:match"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 40,
+              "module": "builtin:SetVariable",
+              "version": 1,
+              "parameters": {},
+              "mapper": {
+                "name": "plain_text",
+                "value": "{{toString(2.data)}}"
+              },
+              "filter": {
+                "name": "Plain text (fallback)",
+                "conditions": []
+              }
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "designer": { "x": 400, "y": 0 }
+      }
+    }
+  ],
+  "_comment": [
+    "IMPORTANT: This blueprint is a structural scaffold only.",
+    "Make.com blueprint format is version-sensitive and changes frequently.",
+    "After importing (if import works), you WILL need to:",
+    "  1. Re-authenticate all connections (Google, OpenAI, Anthropic).",
+    "  2. Re-map folder IDs — replace REPLACE_WITH_TO_ACTION_FOLDER_ID",
+    "     and REPLACE_WITH_ACTIONED_FOLDER_ID with real IDs from your Drive.",
+    "  3. Add the Anthropic Claude module at the end of each Router branch",
+    "     (see manual-build.md Step 6 for the full prompt mapping).",
+    "  4. Add the JSON Parser, Iterator, Google Tasks, and Move File modules.",
+    "  5. Verify all field mappings manually against the manual-build.md guide.",
+    "The manual-build.md guide is the reliable reference — use this blueprint",
+    "only as a starting-point to save clicking through module selection."
+  ]
+}
