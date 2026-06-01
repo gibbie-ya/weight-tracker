@@ -15,8 +15,8 @@ Download file
       ↓
 Router (branch by file type)
   ├─ Audio   → AssemblyAI → transcript text
-  ├─ Image   → OpenAI GPT-4o vision → extracted text
-  ├─ PDF/doc → OpenAI GPT-4o → extracted text
+  ├─ Image   → Claude (reads image) → extracted text
+  ├─ PDF/doc → Claude (reads PDF)   → extracted text
   └─ Text    → read directly
       ↓
 Anthropic Claude (structuring prompt)
@@ -36,8 +36,7 @@ Google Drive: move file to /Brain Dump/Actioned
 | Make.com account | Free tier works; Core+ gives 1-min polling |
 | Google account | Drive + Tasks |
 | AssemblyAI API key | For audio transcription — free tier: 100 hrs/month |
-| OpenAI API key | For GPT-4o vision (images) and PDF extraction only |
-| Anthropic API key | For Claude task structuring |
+| Anthropic API key | For images, PDFs, AND task structuring — Claude does all three |
 | Node.js ≥ 18 | For running the local test harness only |
 
 ---
@@ -109,18 +108,13 @@ Make.com handles OAuth2 for you when you connect your Google account — you do 
 2. Copy your API key from the dashboard
 3. In Make: **Connections** → **Add** → **AssemblyAI** → paste API key → Save
 
-### 3.3 Connect OpenAI
+### 3.3 Connect Anthropic (Claude)
 
-1. **Connections** → **Add** → **OpenAI**
-2. Paste your OpenAI API key
-3. Save
-(Used for images and PDFs only — not audio)
-
-### 3.4 Connect Anthropic
-
-1. **Connections** → **Add** → **Anthropic**
+1. **Connections** → **Add** → **Anthropic** (or **Claude**)
 2. Paste your Anthropic API key
 3. Save
+
+> No OpenAI connection needed — Claude reads images and PDFs directly. In Make, the Claude module is called **"Create a prompt"** under the Anthropic Claude app.
 
 ---
 
@@ -134,10 +128,10 @@ Follow the detailed step-by-step instructions in [`make/manual-build.md`](make/m
 2. **Google Drive** — Download a File
 3. **Router** (4 branches by MIME type):
    - Audio → **AssemblyAI** — Transcribe a Recording
-   - Image → **OpenAI** — Create a Chat Completion (GPT-4o vision)
-   - PDF/doc → **OpenAI** — Create a Chat Completion (GPT-4o with file)
+   - Image → **Anthropic Claude** — Create a prompt (reads the image)
+   - PDF/doc → **Anthropic Claude** — Create a prompt (reads the PDF)
    - Text → **Tools** — Set Variable (read bytes as string)
-4. **Anthropic** — Create a Message (Claude structuring prompt)
+4. **Anthropic Claude** — Create a prompt (the structuring prompt → JSON)
 5. **JSON** — Parse JSON
 6. **Flow control** — Iterator
 7. **Google Tasks** — Create a Task
@@ -275,12 +269,12 @@ Estimates based on typical input sizes. Actual costs vary.
 |---|---|---|
 | Short voice note (30s) | AssemblyAI (free tier) | $0.000 |
 | Long voice note (5 min) | AssemblyAI (free tier) | $0.000 |
-| Image / screenshot | GPT-4o vision (~800 tokens) | ~$0.003 |
-| PDF (1–5 pages) | GPT-4o (~2000 tokens) | ~$0.010 |
+| Image / screenshot | Claude Haiku reads image (~800 tokens) | ~$0.002 |
+| PDF (1–5 pages) | Claude reads PDF (~2000 tokens) | ~$0.008 |
 | Plain text | None | $0.000 |
 | Claude structuring (all types) | ~500 input + 300 output tokens | ~$0.005 |
 
-**Typical per-dump cost: $0.005–$0.035**
+**Typical per-dump cost: $0.005–$0.013** (audio is free on AssemblyAI's tier)
 
 ---
 

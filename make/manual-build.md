@@ -2,6 +2,8 @@
 
 Step-by-step instructions for building the Brain-Dump → Google Tasks scenario in the Make GUI.
 
+> **Naming note:** In Make, the Anthropic/Claude module is called **"Create a prompt"** (under the Anthropic Claude app). Wherever this guide says "the Claude module", look for **Anthropic Claude → Create a prompt**.
+
 ---
 
 ## Prerequisites
@@ -9,11 +11,12 @@ Step-by-step instructions for building the Brain-Dump → Google Tasks scenario 
 - Make.com account (Free tier works for low volume; Core+ recommended for instant triggers)
 - Google account with Drive and Tasks enabled
 - AssemblyAI API key (for audio transcription — free tier: 100 hrs/month)
-- OpenAI API key (for image vision and PDF extraction only)
-- Anthropic API key (for Claude task structuring)
+- Anthropic API key (for image reading, PDF reading, AND task structuring — Claude does all three)
 - Google Drive folders already created:
   - `/Brain Dump/To action`
   - `/Brain Dump/Actioned`
+
+> **No OpenAI needed.** Claude reads images and PDFs directly, so this build uses just two AI providers: **AssemblyAI** (audio) and **Anthropic Claude** (everything else).
 
 ---
 
@@ -23,16 +26,14 @@ Do this before building the scenario so connections are ready to select as you g
 
 ### Google
 1. **Connections** → **Add a connection** → search **Google Drive** → sign in → grant all permissions. One connection covers both Drive and Tasks modules.
+   - **Personal @gmail account?** Google blocks Make's default "restricted" Google connection on personal Gmail. You'll need a custom OAuth app: create a project in [Google Cloud Console](https://console.cloud.google.com), enable the Drive + Tasks APIs, create an OAuth consent screen (External, add your own email under **Test users**), create an OAuth client ID (Web application, redirect URI `https://www.integromat.com/oauth/cb/google-restricted`), then in Make choose **Advanced settings** and paste the Client ID + Secret. See README Part 1 for full detail.
 
 ### AssemblyAI
 1. Sign up at [assemblyai.com](https://www.assemblyai.com) → copy your API key from the dashboard.
 2. In Make: **Connections** → **Add** → search **AssemblyAI** → paste your API key → Save.
 
-### OpenAI
-1. **Connections** → **Add** → search **OpenAI** → paste your OpenAI API key → Save. (Used for image vision and PDF extraction only — not audio.)
-
 ### Anthropic
-1. **Connections** → **Add** → search **Anthropic** → paste your Anthropic API key → Save.
+1. **Connections** → **Add** → search **Anthropic** (or **Claude**) → paste your Anthropic API key → Save.
 
 ---
 
@@ -44,10 +45,10 @@ Do this before building the scenario so connections are ready to select as you g
 
 ---
 
-## Step 2 — Module 1: Trigger — Watch Files in a Folder
+## Step 3 — Module 1: Trigger — Watch Files in a Folder
 
 1. Click the **+** button → search **Google Drive** → select **Watch Files in a Folder**
-2. **Connection:** Connect your Google account (OAuth2). Grant Drive and Tasks permissions.
+2. **Connection:** your Google connection
 3. **Folder:** Click the folder picker → navigate to `/Brain Dump/To action`
 4. **Watch:** New files only
 5. **Maximum number of files:** `1` (process one file per run to keep things simple)
@@ -57,7 +58,7 @@ Do this before building the scenario so connections are ready to select as you g
 
 ---
 
-## Step 3 — Module 2: Download a File
+## Step 4 — Module 2: Download a File
 
 1. Click **+** after the trigger → **Google Drive** → **Download a File**
 2. **Connection:** same Google connection
@@ -66,194 +67,184 @@ Do this before building the scenario so connections are ready to select as you g
 
 ---
 
-## Step 4 — Module 3: Router
+## Step 5 — Module 3: Router
 
 1. Click **+** → search **Flow control** → select **Router**
 2. The Router creates multiple branches. You will create **4 branches** (audio, image, PDF/doc, text).
 
+Each branch normalises its input to plain text, then all branches feed into the Claude structuring step (Step 6).
+
 ### Branch 1 — Audio
 
 1. Click the **+** on the first branch coming out of the Router
-2. **Filter label:** `Audio`
-3. **Condition:** `{{1.mimeType}}` **matches pattern (regex):** `^audio/`
-   - OR as a fallback: `{{1.name}}` **matches pattern:** `\.(m4a|mp3|ogg|wav|aac)$`
-4. **Module:** AssemblyAI → **Transcribe a Recording**
-   - Connection: your AssemblyAI connection (API key — see Step 3.2 below)
+2. Set a **filter** on the link (click the wrench/spanner on the connector):
+   - **Label:** `Audio`
+   - **Condition:** `{{1.mimeType}}` **matches pattern (regex):** `^audio/`
+   - OR fallback: `{{1.name}}` **matches pattern:** `\.(m4a|mp3|ogg|wav|aac)$`
+3. **Module:** AssemblyAI → **Transcribe a Recording**
+   - Connection: your AssemblyAI connection
    - Audio: map `{{2.data}}` (the downloaded bytes from Module 2)
    - Language code: leave blank for auto-detect, or set `en` for English
    - Leave all other options as default
-5. **Output:** the transcript text is at `{{N.text}}`
-
-> AssemblyAI's free tier gives 100 hours/month — ample for personal use. Sign up at assemblyai.com, grab your API key from the dashboard.
+4. **Output:** the transcript text is `{{3.text}}` (module 3's `text` field)
 
 ### Branch 2 — Image
 
 1. Click **+** on the second Router branch
-2. **Filter label:** `Image`
-3. **Condition:** `{{1.mimeType}}` **matches pattern:** `^image/`
+2. **Filter:**
+   - **Label:** `Image`
+   - **Condition:** `{{1.mimeType}}` **matches pattern:** `^image/`
    - OR: `{{1.name}}` **matches pattern:** `\.(jpg|jpeg|png|gif|webp|heic|heif)$`
-4. **Module:** OpenAI → **Create a Chat Completion**
-   - Connection: your OpenAI connection
-   - Model: `gpt-4o`
-   - Messages → Role: `user`
-   - Content type: `Image + text`
-     - Text: `Please extract and transcribe all text visible in this image. If there is no text, describe what actions or tasks are implied by the image content.`
-     - Image: map `{{2.data}}` (base64 file data), MIME type: `{{1.mimeType}}`
-5. **Output:** `{{4.choices[].message.content}}` — you may need a **Text Aggregator** module after this to collapse the array to a single string if Make returns an array.
+3. **Module:** Anthropic Claude → **Create a prompt**
+   - Connection: your Anthropic connection
+   - Model: `claude-haiku-4-5` (cheap and good for OCR) or `claude-sonnet-4-6`
+   - Max tokens: `1024`
+   - Add a **user message**. If the module offers an **image / file input** (look for an "Add image", "Attachments", or "Content type: image" option):
+     - Image data: map `{{2.data}}`
+     - MIME type: `{{1.mimeType}}`
+     - Text: `Extract and transcribe all text visible in this image. If there is no text, describe any actions or tasks implied. Return plain text only.`
+   - **Output:** the text is `{{4.result}}` (or `{{4.content[].text}}` depending on the module version — pick the text field Make exposes)
 
-> **Alternative:** Use the Anthropic module here instead with the vision beta. Either works; OpenAI gpt-4o is more reliable for pure OCR.
+> **If "Create a prompt" in your Make version is text-only** (no image input): use the **HTTP** module instead to call the Anthropic API directly with a base64 image block, OR skip image support for now and add it later. Most dumps are voice/text anyway.
 
 ### Branch 3 — PDF / Document
 
 1. Click **+** on the third Router branch
-2. **Filter label:** `PDF or Document`
-3. **Condition:** `{{1.mimeType}}` **matches pattern:** `^application/(pdf|msword|vnd\.openxmlformats|vnd\.ms)`
-   - OR: `{{1.name}}` **matches pattern:** `\.(pdf|doc|docx|txt|md)$`
-   - **Note:** plain `.txt` files may hit this branch if their MIME is `text/plain` — that is fine; the text extraction below still works.
+2. **Filter:**
+   - **Label:** `PDF or Document`
+   - **Condition:** `{{1.mimeType}}` **matches pattern:** `^application/(pdf|msword|vnd\.openxmlformats|vnd\.ms)`
+   - OR: `{{1.name}}` **matches pattern:** `\.(pdf|doc|docx)$`
+3. **Module:** Anthropic Claude → **Create a prompt**
+   - Connection: your Anthropic connection
+   - Model: `claude-sonnet-4-6`
+   - Max tokens: `2048`
+   - Add a **user message**. If the module offers a **document / file input** (Claude reads PDFs natively):
+     - Document data: map `{{2.data}}`
+     - MIME type: `{{1.mimeType}}`
+     - Text: `Extract all text from this document. Return plain text only — no commentary.`
+   - **Output:** the text is `{{5.result}}` (or the text field Make exposes)
 
-4. **Module:** OpenAI → **Create a Chat Completion**
-   - Model: `gpt-4o` (supports PDF via file upload in the API; alternatively use the Files API)
-   - For PDFs: Upload the file bytes as a user message attachment.
-   - Messages → Role: `user`, Content: `Extract all text from this document. Return plain text only.`
-   - Attach: `{{2.data}}` with MIME `{{1.mimeType}}`
-
-> **Simpler alternative for PDFs:** Use the **PDF.co** or **Adobe PDF Services** Make module to extract text, then pass that text directly to Claude. This avoids passing large binaries to OpenAI.
+> **If your "Create a prompt" module can't accept a document/file:** add a dedicated extraction module first — **PDF.co** or **CloudConvert** (both have Make modules and free tiers) — to turn the PDF into text, then pass that text into Claude at Step 6. This avoids needing file input on the Claude module.
 
 ### Branch 4 — Plain Text
 
-1. Click **+** on the fourth Router branch (or set this as the **else / fallback** branch with no filter)
+1. Click **+** on the fourth Router branch — set this as the **fallback** branch (no filter, or use Make's "fallback route" toggle)
 2. **Filter label:** `Plain text (fallback)`
-3. **No condition** (this catches everything not matched above)
-4. **Module:** **Tools** → **Set Variable** (or use a Text Aggregator)
-   - Variable name: `plain_text`
-   - Variable value: convert the downloaded file bytes to text: `{{toString(2.data)}}`
-   - If Make doesn't auto-decode, use: **Tools → Base64 Decode** or a **Text Parser → Convert encoding** module.
+3. **Module:** **Tools** → **Set Variable**
+   - Variable name: `extracted_text`
+   - Value: `{{toString(2.data)}}` (decode the file bytes to a string)
+   - If Make doesn't auto-decode, add **Tools → Base64 Decode** first, or a **Text Parser → Convert encoding** module.
 
 ---
 
-## Step 5 — Module: Converge branches → Set the text variable
+## Step 6 — The Claude structuring step (Create a prompt)
 
-After each Router branch produces its text, you need a single value for the Claude step. The cleanest approach in Make:
+This is the core step: normalised text → JSON task array. Add it **at the end of each branch** (the simplest reliable approach in Make — Router branches are independent paths, so each branch gets its own copy of the downstream modules).
 
-1. Each branch feeds into the **next module directly** — no explicit converge node needed in Make's Router; branches are independent paths that each continue to their own next modules.
-2. **Duplicate the Claude module** into each branch (steps 6–8 below), OR use the following trick:
+> **Tip:** Build the full chain (Steps 6–10) on ONE branch first, test it end-to-end, then right-click the modules → **Clone** onto the other branches and just re-point the input mapping.
 
-**Trick: Use a single variable before branching**
-- After the Router, before the branch-specific modules, add a **Set Variable** placeholder. Then at the end of each branch, set a module-level variable `extracted_text` to the branch output, and point all branches to the same downstream Claude module.
-
-In practice, the simplest Make approach is to **put the Claude + Iterator + Google Tasks + Move modules inside each branch** — it's verbose but reliable. The guide below describes the shared-module approach using Make's **Converge** (available in paid plans) or simply duplicating modules.
-
----
-
-## Step 6 — Module: Claude — Create a Message (Anthropic)
-
-Add this module at the end of **each branch** (or after a Converge node):
-
-1. **Module:** Anthropic → **Create a Message**
-2. **Connection:** your Anthropic connection (API key)
+1. **Module:** Anthropic Claude → **Create a prompt**
+2. **Connection:** your Anthropic connection
 3. **Model:** `claude-sonnet-4-6`
 4. **Max tokens:** `2048`
-5. **System prompt:** Copy the system prompt from `prompt/structuring-prompt.md`, replacing `{{current_date}}` with the Make expression:
-
+5. **System prompt:** Paste the system prompt from `prompt/structuring-prompt.md`. Where it says `{{current_date}}`, replace with Make's expression:
    ```
-   formatDate(now; "YYYY-MM-DD")
+   {{formatDate(now; "YYYY-MM-DD")}}
    ```
-
-   In Make's text field, the system prompt becomes a static string with one dynamic injection. Use a **Set Variable** module to build it:
-
-   - Variable name: `system_prompt`
-   - Value: paste the full system prompt, and where `{{current_date}}` appears, use Make's `{{formatDate(now; "YYYY-MM-DD")}}`
-
-6. **Messages → Role:** `user`
-7. **Messages → Content:** 
+6. **User message (Role: user):**
    ```
    Source content:
 
-   {{extracted_text}}
+   {{<branch text output>}}
    ```
-   Where `{{extracted_text}}` is mapped from the branch output (Whisper text, vision text, PDF text, or raw text).
+   Map `<branch text output>` to whichever this branch produced:
+   - Audio branch → AssemblyAI `text`
+   - Image branch → Claude image-read `result`/text
+   - PDF branch → Claude PDF-read (or PDF.co) text
+   - Text branch → the `extracted_text` variable
+7. Click **OK**
 
-8. Click **OK**
-
-**Output:** The Claude response text is at `{{N.content[].text}}` — you may need a Text Aggregator to join array items into a single string.
+**Output:** Claude's JSON response is in the module's result/text field (e.g. `{{N.result}}` or `{{N.content[].text}}`).
 
 ---
 
-## Step 7 — Module: Parse JSON
+## Step 7 — Parse JSON
 
 1. **Module:** **JSON** → **Parse JSON**
-2. **JSON string:** map the Claude output text (the aggregated string from step 6)
+2. **JSON string:** map the Claude output text from Step 6
 3. Click **OK**
 
-This gives you a Make array you can iterate over.
+This converts Claude's JSON string into a Make array you can iterate over.
 
 ---
 
-## Step 8 — Module: Iterator
+## Step 8 — Iterator
 
 1. **Module:** **Flow control** → **Iterator**
-2. **Array:** map the parsed JSON array from step 7: `{{N.array}}`
+2. **Array:** map the parsed array from Step 7
 3. Click **OK**
 
 Each iteration outputs one task object with `title`, `notes`, `due`.
 
 ---
 
-## Step 9 — Module: Create a Task (Google Tasks)
+## Step 9 — Create a Task (Google Tasks)
 
 1. **Module:** **Google Tasks** → **Create a Task**
-2. **Connection:** same Google connection (ensure Tasks scope is granted)
-3. **Task List:** select your default task list (usually "My Tasks") or a dedicated "Brain Dump" list
+2. **Connection:** same Google connection (Tasks scope granted)
+3. **Task List:** select "My Tasks" or a dedicated "Brain Dump" list
 4. **Title:** `{{iterator.title}}`
 5. **Notes:** `{{iterator.notes}}`
-6. **Due:** `{{iterator.due}}` — map as a date. If `due` is `null`, leave this blank. You may need a filter or `ifempty(iterator.due; "")`.
+6. **Due:** `{{iterator.due}}` — if `due` is `null`, leave blank. Use `{{ifempty(iterator.due; emptystring)}}` if Make complains about nulls.
 7. Click **OK**
 
 ---
 
-## Step 10 — Module: Move the File to Actioned
+## Step 10 — Move the File to Actioned
 
-Add this module **after** the iterator loop completes (i.e., after all tasks are created):
+Place this **after** the Iterator loop (runs once per file, not per task).
 
 1. **Module:** **Google Drive** → **Move a File**
 2. **Connection:** same Google connection
-3. **File ID:** `{{1.id}}` (from the original trigger)
+3. **File ID:** `{{1.id}}` (from the trigger)
 4. **Folder:** select `/Brain Dump/Actioned`
 5. Click **OK**
 
-> **Important:** This module must be **outside** the Iterator loop — it should run once per file, not once per task. In Make, place it after the Iterator's aggregate/output, not inside the iteration path.
+> **Important:** This must be **outside** the Iterator — after it, on the main flow, not inside the iteration path. This is also why failures stay visible: if any earlier module errors, Move never runs and the file stays in "To action".
 
 ---
 
 ## Step 11 — Error handling
 
-1. Click the **wrench icon** on the Router module → **Add error handler**
-2. Choose **Ignore** or **Break** depending on preference:
-   - **Ignore:** silently skips the file (not recommended — failures stay invisible)
-   - **Break:** stops the scenario and marks the run as failed — the file is NOT moved to Actioned because the Move module never runs. This is the correct behavior.
-3. Optionally add a **Gmail → Send an Email** or **Slack → Send a Message** module in the error handler to notify you of failures.
+1. Right-click a module that can fail (Claude, Parse JSON) → **Add error handler**
+2. Choose **Break** (recommended):
+   - Stops the run and marks it failed
+   - The file is NOT moved to Actioned (Move never runs) → failure stays visible in "To action"
+3. Optionally add **Gmail → Send an Email** inside the error handler to notify you, including the raw Claude output so you can diagnose bad JSON.
 
-For invalid JSON from Claude:
-- Add a **JSON → Parse JSON** error handler that sends the raw Claude output to yourself by email so you can diagnose.
+Common failure modes:
+- **Empty/garbled extraction** → Claude returns `[]`, no tasks created. (Optionally add a filter before Move so empty results don't get archived.)
+- **Invalid JSON** → Parse JSON errors → Break → file stays put.
+- **Unsupported file type** → falls into the text branch; if binary, Claude returns `[]`. Add a `text/` filter on the fallback branch to be strict.
 
 ---
 
 ## Step 12 — Schedule / Trigger settings
 
 1. Click the **clock icon** at the bottom of the scenario
-2. **Scheduling:** set to **Immediately** (Make polls on your plan's minimum interval — 15 min on Free, 1 min on Core+)
-3. Alternatively, use a **webhook**-based trigger if you want sub-minute response times (requires a small proxy, not covered here).
-4. **Activate** the scenario using the toggle at the bottom.
+2. **Scheduling:** **Immediately** (Make polls at your plan's minimum — 15 min Free, 1 min Core+)
+3. **Activate** the scenario with the toggle.
 
 ---
 
 ## Step 13 — Test run
 
-1. Click **Run once** to manually trigger
-2. Drop a test `.txt` file into `/Brain Dump/To action` on Google Drive from your phone or desktop
-3. Watch the execution log — each module should show green
+1. Click **Run once**
+2. Drop a test `.txt` file into `/Brain Dump/To action`
+3. Watch the execution log — each module should go green
 4. Check Google Tasks for the created items
 5. Verify the file moved to `/Brain Dump/Actioned`
+6. Repeat for an audio file, an image, and a PDF.
 
 ---
 
@@ -263,14 +254,13 @@ For invalid JSON from Claude:
 |--------|-----------|-------|
 | Watch Files | Folder | `/Brain Dump/To action` |
 | Download File | File ID | `{{1.id}}` |
-| Router branch filter | MIME type | regex per branch (see above) |
-| Whisper | File | `{{2.data}}` |
-| OpenAI vision | Image | `{{2.data}}` |
-| Claude system | current_date | `formatDate(now; "YYYY-MM-DD")` |
-| Claude user | extracted_text | branch text output |
+| Router filters | MIME type | regex per branch (see above) |
+| AssemblyAI | Audio | `{{2.data}}` |
+| Claude (image) | Image + MIME | `{{2.data}}` / `{{1.mimeType}}` |
+| Claude (PDF) | Document + MIME | `{{2.data}}` / `{{1.mimeType}}` |
+| Text branch | extracted_text | `{{toString(2.data)}}` |
+| Claude system | current_date | `{{formatDate(now; "YYYY-MM-DD")}}` |
+| Claude user | source content | branch text output |
 | Iterator | Array | parsed JSON from Claude |
-| Google Tasks title | — | `{{iterator.title}}` |
-| Google Tasks notes | — | `{{iterator.notes}}` |
-| Google Tasks due | — | `{{iterator.due}}` |
-| Move File | File ID | `{{1.id}}` |
-| Move File | Destination | `/Brain Dump/Actioned` |
+| Google Tasks | Title / Notes / Due | `{{iterator.title}}` / `{{iterator.notes}}` / `{{iterator.due}}` |
+| Move File | File ID / Dest | `{{1.id}}` / `/Brain Dump/Actioned` |
