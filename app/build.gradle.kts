@@ -21,6 +21,15 @@ android {
     buildTypes {
         debug {
             isDebuggable = true
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (keystorePath != null) {
+                signingConfig = signingConfigs.create("ciDebug").apply {
+                    storeFile = file(keystorePath)
+                    storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    keyAlias = System.getenv("KEY_ALIAS")
+                    keyPassword = System.getenv("KEY_PASSWORD")
+                }
+            }
         }
         release {
             isMinifyEnabled = true
