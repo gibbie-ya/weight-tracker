@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
@@ -28,6 +29,7 @@ fun ProgressScreen(viewModel: ProgressViewModel) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val selectedRange by viewModel.selectedRange.collectAsStateWithLifecycle()
     val weeklyTotals by viewModel.weeklyTotals.collectAsStateWithLifecycle()
+    val weeklyWeightSummary by viewModel.weeklyWeightSummary.collectAsStateWithLifecycle()
 
     if (filteredEntries.isEmpty() && stats.daysLogged == 0) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -45,7 +47,7 @@ fun ProgressScreen(viewModel: ProgressViewModel) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { WeeklyTotalsCard(weeklyTotals) }
+        item { WeeklyTotalsCard(weeklyTotals, weeklyWeightSummary, settings.unit) }
 
         item { StatsGrid(stats, settings.unit) }
 
@@ -82,14 +84,11 @@ fun ProgressScreen(viewModel: ProgressViewModel) {
 }
 
 @Composable
-private fun WeeklyTotalsCard(totals: WeeklyTotals) {
+private fun WeeklyTotalsCard(totals: WeeklyTotals, weightSummary: WeeklyWeightSummary, unit: String) {
     val weekLabel = totals.weekStart.format(DateTimeFormatter.ofPattern("d MMM"))
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                "This week (from $weekLabel)",
-                style = MaterialTheme.typography.titleSmall
-            )
+            Text("This week (from $weekLabel)", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatCard(
@@ -103,7 +102,54 @@ private fun WeeklyTotalsCard(totals: WeeklyTotals) {
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            // Weekly weight summary
+            if (weightSummary.startingWeight != null || weightSummary.endingWeight != null) {
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(8.dp))
+                Text("Weight this week", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(6.dp))
+                weightSummary.startingWeight?.let {
+                    WeightRow("Starting", "%.1f $unit".format(it))
+                }
+                weightSummary.endingWeight?.let {
+                    WeightRow("Current avg", "%.1f $unit".format(it))
+                }
+                weightSummary.loss?.let { loss ->
+                    val lossColor = when {
+                        loss > 0f -> Color(0xFF2E7D32)   // green — weight dropped
+                        loss < 0f -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                    val lossLabel = if (loss >= 0f) "−%.1f $unit".format(loss)
+                                    else "+%.1f $unit".format(-loss)
+                    WeightRow("Loss", lossLabel, valueColor = lossColor)
+                }
+            } else {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "No weight data logged this week yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun WeightRow(label: String, value: String, valueColor: Color = Color.Unspecified) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = valueColor)
     }
 }
 

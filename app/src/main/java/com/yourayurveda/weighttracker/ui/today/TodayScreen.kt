@@ -1,9 +1,12 @@
 package com.yourayurveda.weighttracker.ui.today
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -13,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yourayurveda.weighttracker.util.toDisplayDate
@@ -22,10 +26,12 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState) {
-    val todayEntry by viewModel.todayEntry.collectAsStateWithLifecycle()
+    val selectedEntry by viewModel.selectedEntry.collectAsStateWithLifecycle()
+    val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val missingDays by viewModel.missingDays.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
+    val today = remember { LocalDate.now() }
 
     var weightText by remember { mutableStateOf("") }
     var caloriesText by remember { mutableStateOf("") }
@@ -36,9 +42,23 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
     var notes by remember { mutableStateOf("") }
     var prefilledFor by remember { mutableStateOf<String?>(null) }
     var bannerDismissed by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
-    LaunchedEffect(todayEntry) {
-        val entry = todayEntry
+    // Reset fields when the selected date changes
+    LaunchedEffect(selectedDate) {
+        weightText = ""
+        caloriesText = ""
+        activeCalText = ""
+        stepsText = ""
+        hitMacros = false
+        wentToGym = false
+        notes = ""
+        prefilledFor = null
+    }
+
+    // Fill fields when an entry is loaded for the selected date
+    LaunchedEffect(selectedEntry) {
+        val entry = selectedEntry
         if (entry != null && prefilledFor != entry.date) {
             weightText = entry.weight?.let { "%.1f".format(it) } ?: ""
             caloriesText = if (entry.caloriesConsumed > 0) entry.caloriesConsumed.toString() else ""
@@ -53,6 +73,18 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
 
     LaunchedEffect(Unit) {
         viewModel.saveResult.collect { snackbarHostState.showSnackbar("Saved!") }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            today = today,
+            selectedDate = selectedDate,
+            onDismiss = { showDatePicker = false },
+            onConfirm = { date ->
+                viewModel.setDate(date)
+                showDatePicker = false
+            }
+        )
     }
 
     LazyColumn(
@@ -74,16 +106,22 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                     state = dismissState,
                     backgroundContent = {}
                 ) {
-                    MissingDaysBanner(missingDays)
+                    MissingDaysBanner(
+                        missingDays = missingDays,
+                        onDateClick = { dateStr -> viewModel.setDate(LocalDate.parse(dateStr)) }
+                    )
                 }
             }
         }
 
+        // Date navigation header
         item {
-            Text(
-                text = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy")),
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+            DateHeader(
+                selectedDate = selectedDate,
+                today = today,
+                onPrevious = { viewModel.setDate(selectedDate.minusDays(1)) },
+                onNext = { viewModel.setDate(selectedDate.plusDays(1)) },
+                onTapLabel = { showDatePicker = true }
             )
         }
 
@@ -104,7 +142,7 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                 onClick = { viewModel.saveWeight(weightText.toFloatOrNull()) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (todayEntry?.weight != null) "Update weight" else "Save weight")
+                Text(if (selectedEntry?.weight != null) "Update weight" else "Save weight")
             }
         }
 
@@ -188,14 +226,86 @@ fun TodayScreen(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState)
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (todayEntry?.caloriesConsumed != 0) "Update log" else "Save log")
+                Text(if ((selectedEntry?.caloriesConsumed ?: 0) != 0) "Update log" else "Save log")
             }
         }
     }
 }
 
 @Composable
-private fun MissingDaysBanner(missingDays: List<String>) {
+private fun DateHeader(
+    selectedDate: LocalDate,
+    today: LocalDate,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onTapLabel: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        IconButton(onClick = onPrevious) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous day")
+        }
+        Text(
+            text = when (selectedDate) {
+                today -> "Today — ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM yyyy"))}"
+                today.minusDays(1) -> "Yesterday — ${selectedDate.format(DateTimeFormatter.ofPattern("d MMMM yyyy"))}"
+                else -> selectedDate.format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy"))
+            },
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onTapLabel)
+        )
+        IconButton(
+            onClick = onNext,
+            enabled = selectedDate < today
+        ) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next day")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerDialog(
+    today: LocalDate,
+    selectedDate: LocalDate,
+    onDismiss: () -> Unit,
+    onConfirm: (LocalDate) -> Unit
+) {
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate.toEpochDay() * 86_400_000L,
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val dayEpoch = utcTimeMillis / 86_400_000L
+                return dayEpoch <= today.toEpochDay()
+            }
+        }
+    )
+    androidx.compose.material3.DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                state.selectedDateMillis?.let { millis ->
+                    onConfirm(LocalDate.ofEpochDay(millis / 86_400_000L))
+                }
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    ) {
+        DatePicker(state = state)
+    }
+}
+
+@Composable
+private fun MissingDaysBanner(
+    missingDays: List<String>,
+    onDateClick: (String) -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
@@ -212,7 +322,7 @@ private fun MissingDaysBanner(missingDays: List<String>) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Missing entries:",
+                    "Missing entries — tap to fill in:",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -222,7 +332,11 @@ private fun MissingDaysBanner(missingDays: List<String>) {
                 Text(
                     "• ${date.toDisplayDate()}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onDateClick(date) }
+                        .padding(vertical = 2.dp)
                 )
             }
         }

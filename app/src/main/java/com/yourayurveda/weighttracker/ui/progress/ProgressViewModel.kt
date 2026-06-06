@@ -35,6 +35,12 @@ data class WeeklyTotals(
     val weekStart: LocalDate = LocalDate.now()
 )
 
+data class WeeklyWeightSummary(
+    val startingWeight: Float? = null,
+    val endingWeight: Float? = null,
+    val loss: Float? = null
+)
+
 class ProgressViewModel(
     private val entryRepository: EntryRepository,
     private val settingsRepository: SettingsRepository
@@ -81,6 +87,34 @@ class ProgressViewModel(
             weekStart = weekStart
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), WeeklyTotals())
+
+    val weeklyWeightSummary: StateFlow<WeeklyWeightSummary> = allEntries.map { entries ->
+        val today = LocalDate.now()
+        val thisWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val prevWeekStart = thisWeekStart.minusWeeks(1)
+        val prevWeekEnd = thisWeekStart.minusDays(1)
+
+        val withWeight = entries.filter { it.weight != null }
+        if (withWeight.isEmpty()) return@map WeeklyWeightSummary()
+
+        val thisWeekWeights = withWeight
+            .filter { it.date >= thisWeekStart.toString() && it.date <= today.toString() }
+            .map { it.weight!! }
+
+        val prevWeekWeights = withWeight
+            .filter { it.date >= prevWeekStart.toString() && it.date <= prevWeekEnd.toString() }
+            .map { it.weight!! }
+
+        val endingWeight = if (thisWeekWeights.isNotEmpty()) thisWeekWeights.average().toFloat() else null
+        val startingWeight = if (prevWeekWeights.isNotEmpty()) {
+            prevWeekWeights.average().toFloat()
+        } else {
+            withWeight.minByOrNull { it.date }?.weight
+        }
+        val loss = if (startingWeight != null && endingWeight != null) startingWeight - endingWeight else null
+
+        WeeklyWeightSummary(startingWeight, endingWeight, loss)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), WeeklyWeightSummary())
 
     fun setRange(range: TimeRange) { _selectedRange.value = range }
 
