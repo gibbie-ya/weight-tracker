@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                     return false
                 }
             }
-            loadUrl("file:///android_asset/index.html")
+            loadUrl("file:///android_asset/www/index.html")
         }
 
         setContentView(webView)
