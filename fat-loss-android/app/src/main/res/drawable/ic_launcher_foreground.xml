@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- barbell -->
+  <path android:fillColor="#e94560"
+      android:pathData="M10,50 h88 v8 h-88z"/>
+  <path android:fillColor="#e94560"
+      android:pathData="10,44 h14 v20 h-14z" android:pathData="M10,44 h14 v20 h-14z"/>
+  <path android:fillColor="#e94560"
+      android:pathData="M84,44 h14 v20 h-14z"/>
+  <path android:fillColor="#e94560"
+      android:pathData="M2,47 h10 v14 h-10z"/>
+  <path android:fillColor="#e94560"
+      android:pathData="M96,47 h10 v14 h-10z"/>
+</vector>
