@@ -1,4 +1,4 @@
-export default function SettingsView({ exportLogs, importLogs, onClose }) {
+export default function SettingsView({ exportLogs, importLogs, onClose, user, onSignOut }) {
   return (
     <div style={{ padding: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -11,6 +11,21 @@ export default function SettingsView({ exportLogs, importLogs, onClose }) {
           }}
         >✕ Close</button>
       </div>
+
+      {user && (
+        <div style={{ background: '#161616', borderRadius: 10, border: '1px solid #222', padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ color: '#aaa', fontSize: 12, marginBottom: 10 }}>Signed in as</div>
+          <div style={{ color: '#f0f0f0', fontSize: 13, marginBottom: 14 }}>{user.email}</div>
+          <button
+            onClick={onSignOut}
+            style={{
+              width: '100%', background: 'none', border: '1px solid #e9456044',
+              borderRadius: 8, color: '#e94560', padding: '10px', fontSize: 13,
+              cursor: 'pointer', minHeight: 44,
+            }}
+          >Sign out</button>
+        </div>
+      )}
 
       <div style={{ background: '#161616', borderRadius: 10, border: '1px solid #222', padding: '16px', marginBottom: 16 }}>
         <div style={{ color: '#aaa', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Export / Import</div>
@@ -38,18 +53,16 @@ export default function SettingsView({ exportLogs, importLogs, onClose }) {
             type="file"
             accept=".json"
             style={{ display: 'none' }}
-            onChange={e => { if (e.target.files[0]) importLogs(e.target.files[0]); }}
+            onChange={e => { if (e.target.files[0]) importLogs(e.target.files[0]) }}
           />
         </label>
       </div>
 
       <div style={{ background: '#161616', borderRadius: 10, border: '1px solid #222', padding: '14px' }}>
-        <div style={{ color: '#aaa', fontSize: 12, lineHeight: 1.6 }}>
-          <div style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>About</div>
-          <div>Fat Loss Training — 12-Week Programme</div>
-          <div style={{ color: '#444', marginTop: 4 }}>All data stored locally on your device. No account required.</div>
-        </div>
+        <div style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>About</div>
+        <div style={{ color: '#aaa', fontSize: 12, lineHeight: 1.6 }}>Fat Loss Training — 12-Week Programme</div>
+        <div style={{ color: '#444', fontSize: 11, marginTop: 4 }}>Logs synced to your account via Supabase.</div>
       </div>
     </div>
-  );
+  )
 }

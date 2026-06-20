@@ -1,16 +1,18 @@
-import { useState } from 'react';
-import { useLogs } from './hooks/useLogs';
-import { getPhaseIndex, PHASE_META } from './data/phases';
-import Header from './components/Header';
-import WeekPicker from './components/WeekPicker';
-import PhaseBanner from './components/PhaseBanner';
-import SessionPicker from './components/SessionPicker';
-import SessionLogger from './components/SessionLogger';
-import ProgressView from './components/ProgressView';
-import ScheduleView from './components/ScheduleView';
-import PhasesView from './components/PhasesView';
-import PrinciplesView from './components/PrinciplesView';
-import SettingsView from './components/SettingsView';
+import { useState } from 'react'
+import { useLogs } from './hooks/useLogs'
+import { useAuth } from './hooks/useAuth'
+import { getPhaseIndex, PHASE_META } from './data/phases'
+import Header from './components/Header'
+import WeekPicker from './components/WeekPicker'
+import PhaseBanner from './components/PhaseBanner'
+import SessionPicker from './components/SessionPicker'
+import SessionLogger from './components/SessionLogger'
+import ProgressView from './components/ProgressView'
+import ScheduleView from './components/ScheduleView'
+import PhasesView from './components/PhasesView'
+import PrinciplesView from './components/PrinciplesView'
+import SettingsView from './components/SettingsView'
+import AuthScreen from './components/AuthScreen'
 
 const TABS = [
   { id: 'log',        label: 'Log',        icon: '📋' },
@@ -18,44 +20,65 @@ const TABS = [
   { id: 'schedule',   label: 'Schedule',   icon: '📅' },
   { id: 'phases',     label: 'Phases',     icon: '🎯' },
   { id: 'principles', label: 'Principles', icon: '📖' },
-];
+]
 
 export default function App() {
-  const [tab, setTab] = useState('log');
-  const [activeWeek, setActiveWeek] = useState(1);
-  const [activeDay, setActiveDay] = useState(null);
-  const [saved, setSaved] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const { user, signIn, signUp, signOut } = useAuth()
+  const [tab, setTab] = useState('log')
+  const [activeWeek, setActiveWeek] = useState(1)
+  const [activeDay, setActiveDay] = useState(null)
+  const [saved, setSaved] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
-  const { logs, getLog, setLog, sessionHasData, bestForExercise, exportLogs, importLogs } = useLogs();
+  const { logs, getLog, setLog, sessionHasData, bestForExercise, exportLogs, importLogs, syncing } = useLogs(user ?? null)
 
-  const phaseIndex = getPhaseIndex(activeWeek);
-  const phaseMeta = PHASE_META[phaseIndex];
+  const phaseIndex = getPhaseIndex(activeWeek)
+  const phaseMeta = PHASE_META[phaseIndex]
 
-  function handleWeekChange(w) {
-    setActiveWeek(w);
-    setActiveDay(null);
-    setSaved(false);
+  // Loading — waiting for session check
+  if (user === undefined) {
+    return (
+      <div style={{
+        minHeight: '100dvh', background: '#0d0d0d',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      }}>
+        <div style={{ color: '#333', fontSize: 13 }}>Loading…</div>
+      </div>
+    )
   }
 
-  function handleSave() {
-    setSaved(true);
+  // Not logged in
+  if (!user) {
+    return <AuthScreen signIn={signIn} signUp={signUp} />
+  }
+
+  function handleWeekChange(w) {
+    setActiveWeek(w)
+    setActiveDay(null)
+    setSaved(false)
   }
 
   if (showSettings) {
     return (
       <div style={{ background: '#0d0d0d', minHeight: '100dvh', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#f0f0f0' }}>
-        <Header onSettings={() => setShowSettings(false)} />
+        <Header onSettings={() => setShowSettings(false)} syncing={syncing} />
         <div style={{ paddingBottom: 80 }}>
-          <SettingsView exportLogs={exportLogs} importLogs={importLogs} onClose={() => setShowSettings(false)} />
+          <SettingsView
+            exportLogs={exportLogs}
+            importLogs={importLogs}
+            onClose={() => setShowSettings(false)}
+            user={user}
+            onSignOut={signOut}
+          />
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div style={{ background: '#0d0d0d', minHeight: '100dvh', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#f0f0f0' }}>
-      <Header onSettings={() => setShowSettings(true)} />
+      <Header onSettings={() => setShowSettings(true)} syncing={syncing} />
 
       <div style={{ paddingBottom: 80 }}>
         {tab === 'log' && (
@@ -67,8 +90,8 @@ export default function App() {
               phaseMeta={phaseMeta}
               getLog={getLog}
               setLog={setLog}
-              onBack={() => { setActiveDay(null); setSaved(false); }}
-              onSave={handleSave}
+              onBack={() => { setActiveDay(null); setSaved(false) }}
+              onSave={() => setSaved(true)}
               saved={saved}
             />
           ) : (
@@ -82,16 +105,16 @@ export default function App() {
               <SessionPicker
                 week={activeWeek}
                 activeDay={activeDay}
-                onDaySelect={id => { setActiveDay(id); setSaved(false); }}
+                onDaySelect={id => { setActiveDay(id); setSaved(false) }}
                 sessionHasData={sessionHasData}
               />
             </>
           )
         )}
 
-        {tab === 'progress' && <ProgressView bestForExercise={bestForExercise} />}
-        {tab === 'schedule' && <ScheduleView />}
-        {tab === 'phases' && <PhasesView />}
+        {tab === 'progress'   && <ProgressView bestForExercise={bestForExercise} />}
+        {tab === 'schedule'   && <ScheduleView />}
+        {tab === 'phases'     && <PhasesView />}
         {tab === 'principles' && <PrinciplesView />}
       </div>
 
@@ -117,5 +140,5 @@ export default function App() {
         ))}
       </div>
     </div>
-  );
+  )
 }
